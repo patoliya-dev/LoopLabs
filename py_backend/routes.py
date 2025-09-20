@@ -1,11 +1,22 @@
 from fastapi import APIRouter, Request, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from database import sessions_collection, conversations_collection
 from bson.objectid import ObjectId
 from stt import speech_to_text
-from pathlib import Path      # <-- add this import
+from tts_service import tts_service
+from pathlib import Path    
+from pydantic import BaseModel 
+import io
+from typing import Optional
 import datetime
 
 router = APIRouter()
+
+class TTSRequest(BaseModel):
+    text: str
+    language: Optional[str] = "en"
+    voice_speed: Optional[float] = 1.0
+    format: Optional[str] = "mp3"
 
 # -----------------------------
 # Session Endpoints
@@ -81,3 +92,61 @@ async def stt(file: UploadFile = File(...)):
     # Convert speech to text
     transcription = speech_to_text(str(file_path))
     return {"text": transcription}
+
+@router.post("/api/tts")
+async def text_to_speech(tts_request: TTSRequest):
+    """
+    Convert text to natural-sounding speech and return as streaming audio.
+    
+    Parameters:
+    - text: The text to convert to speech
+    - language: Language code (en, es, fr, de, etc.) - defaults to 'en'
+    - voice_speed: Speech speed (0.5 to 2.0) - defaults to 1.0
+    - format: Audio format (mp3, wav, ogg) - defaults to 'mp3'
+    
+    Returns streaming audio response that can be played directly in frontend.
+    """
+    try:
+        # Validate input
+        if not tts_request.text.strip():
+            raise HTTPException(status_code=400, detail="Text cannot be empty")
+        
+        if not (0.5 <= tts_request.voice_speed <= 2.0):
+            raise HTTPException(status_code=400, detail="Voice speed must be between 0.5 and 2.0")
+        
+        if tts_request.format not in ["mp3", "wav", "ogg"]:
+            raise HTTPException(status_code=400, detail="Format must be mp3, wav, or ogg")
+        
+        # Generate audio
+        audio_bytes = tts_service.text_to_audio_bytes(
+            text=tts_request.text,
+            language=tts_request.language,
+            voice_speed=tts_request.voice_speed,
+            format=tts_request.format
+        )
+        
+        # Determine content type
+        content_types = {
+            "mp3": "audio/mpeg",
+            "wav": "audio/wav",
+            "ogg": "audio/ogg"
+        }
+        content_type = content_types.get(tts_request.format, "audio/mpeg")
+        
+        # Create streaming response
+        def generate():
+            yield audio_bytes
+        
+        return StreamingResponse(
+            generate(),
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"inline; filename=speech.{tts_request.format}",
+                "Cache-Control": "no-cache"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS processing failed: {str(e)}")
