@@ -6,12 +6,32 @@ import datetime
 router = APIRouter()
 
 @router.post("/api/session")
-async def create_session():
+async def create_or_store_session(request: Request):
+    data = await request.json()
+    
+    session_id = data.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id must be provided by frontend")
+
+    # Check if session exists
+    existing_session = sessions_collection.find_one({"session_id": session_id})
+
+    if existing_session:
+        # Optionally update last accessed time
+        sessions_collection.update_one(
+            {"session_id": session_id},
+            {"$set": {"last_accessed": datetime.datetime.utcnow()}}
+        )
+        return {"session_id": session_id, "message": "Session exists"}
+
+    # If session does not exist, create new
     session_doc = {
-        "created_at": datetime.datetime.utcnow()
+        "session_id": session_id,
+        "created_at": datetime.datetime.utcnow(),
+        "last_accessed": datetime.datetime.utcnow()
     }
-    result = sessions_collection.insert_one(session_doc)
-    return {"session_id": str(result.inserted_id)}
+    sessions_collection.insert_one(session_doc)
+    return {"session_id": session_id, "message": "New session created"}
 
 @router.post("/api/conversation")
 async def add_conversation(request: Request):
