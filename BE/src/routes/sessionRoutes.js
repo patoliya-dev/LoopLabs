@@ -1,6 +1,9 @@
-import { Router } from 'express';
-import { getSessions } from '../controllers/sessionController.js';
+import express from "express";
+import { createSession } from "../controllers/sessionController.js";
 
-const router = Router();
-router.get('/', getSessions);
+const router = express.Router();
+
+// POST /api/sessions
+router.post("/", createSession);
+
 export default router;

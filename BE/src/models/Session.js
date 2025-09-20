@@ -1,6 +1,8 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-// Temporary empty schema until you provide details
-const sessionSchema = new mongoose.Schema({}, { strict: false });
+const sessionSchema = new mongoose.Schema({
+  sessionId: { type: String, required: true, unique: true },
+  createdAt: { type: Date, default: Date.now }
+});
 
-export default mongoose.model('Session', sessionSchema);
+export default mongoose.model("Session", sessionSchema);
