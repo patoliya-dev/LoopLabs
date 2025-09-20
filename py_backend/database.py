@@ -1,11 +1,13 @@
 from pymongo import MongoClient
+from dotenv import load_dotenv
+import os
 
-# Replace the URI below with your MongoDB Atlas connection string
-MONGO_URI = "mongodb+srv://LoopLabs:root-LoopLabs@cluster0.ozlndnw.mongodb.net/?retryWrites=true&w=majority"
+load_dotenv()  # Load environment variables from .env file
+
+MONGO_URI = os.getenv("MONGO_URI")
 
 client = MongoClient(MONGO_URI)
-db = client.ai_talker_db  # You can choose your database name here
+db = client.ai_talker_db
 
 sessions_collection = db.sessions
 conversations_collection = db.conversations
-    
