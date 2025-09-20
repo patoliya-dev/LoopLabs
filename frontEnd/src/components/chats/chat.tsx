@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useChat } from "../../hooks/useChat";
 import { useAudio } from "../../hooks/useAudio";
+import { useSettings } from "../../hooks/useSettings";
 import SettingsPanel from "./SettingsPanel";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
@@ -13,8 +14,37 @@ import { Alert, AlertDescription } from "../ui/alert";
 
 const Chat = () => {
   const [currentPage, setCurrentPage] = useState("home");
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null);
+  const { settings, updateSetting } = useSettings();
+
+  // Derive dark mode from settings
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const updateTheme = () => {
+      if (settings.theme === "system") {
+        const systemDarkMode = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        setIsDarkMode(systemDarkMode);
+      } else {
+        setIsDarkMode(settings.theme === "dark");
+      }
+    };
+
+    updateTheme();
+
+    // Listen for system theme changes when using system theme
+    if (settings.theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      mediaQuery.addEventListener("change", updateTheme);
+      return () => mediaQuery.removeEventListener("change", updateTheme);
+    }
+  }, [settings.theme]);
+
+  const handleThemeChange = (theme: "light" | "dark" | "system") => {
+    updateSetting("theme", theme);
+  };
 
   const {
     messages,
@@ -241,7 +271,10 @@ const Chat = () => {
             )}
 
             {currentPage === "settings" && (
-              <SettingsPanel isDarkMode={isDarkMode} />
+              <SettingsPanel
+                isDarkMode={isDarkMode}
+                onThemeChange={handleThemeChange}
+              />
             )}
           </main>
         </div>

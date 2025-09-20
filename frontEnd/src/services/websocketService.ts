@@ -12,7 +12,7 @@ class WebSocketService {
   private isConnecting: boolean = false;
 
   constructor() {
-    this.url = import.meta.env.VITE_WS_URL || "ws://localhost:8000/ws";
+    this.url = import.meta.env.VITE_WS_URL || "ws://localhost:8000";
   }
 
   // Connect to WebSocket

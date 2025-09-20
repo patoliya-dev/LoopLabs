@@ -1,4 +1,8 @@
-import apiClient from "./api";
+import apiClient, {
+  voiceChatAPI,
+  type VoiceChatRequest,
+  type VoiceChatResponse,
+} from "./api";
 import type { Message } from "../types/chat";
 
 export interface CreateChatRequest {
@@ -39,11 +43,27 @@ class ChatService {
   // Send a message to the AI
   async sendMessage(request: CreateChatRequest): Promise<ChatResponse> {
     try {
-      const response = await apiClient.post("/chat/message", request);
-      return response.data;
+      const response = await voiceChatAPI.sendTextMessage(
+        request.message,
+        request.sessionId
+      );
+      return response;
     } catch (error) {
       console.error("Error sending message:", error);
       throw new Error("Failed to send message");
+    }
+  }
+
+  // Send voice message to the AI
+  async sendVoiceMessage(
+    request: VoiceChatRequest
+  ): Promise<VoiceChatResponse> {
+    try {
+      const response = await voiceChatAPI.sendVoiceMessage(request);
+      return response;
+    } catch (error) {
+      console.error("Error sending voice message:", error);
+      throw new Error("Failed to send voice message");
     }
   }
 

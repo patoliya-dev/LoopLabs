@@ -2,8 +2,7 @@ import axios from "axios";
 import type { AxiosInstance, AxiosResponse } from "axios";
 
 // API Configuration
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const TIMEOUT = 30000; // 30 seconds
 
 // Create axios instance
@@ -45,6 +44,61 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Voice Chat API Functions
+export interface VoiceChatRequest {
+  audioBlob: Blob;
+  sessionId?: string;
+  language?: string;
+}
+
+export interface VoiceChatResponse {
+  message: string;
+  audioUrl?: string;
+  sessionId: string;
+  emotion?: string;
+  timestamp: string;
+}
+
+export const voiceChatAPI = {
+  // Send voice audio to /chat endpoint
+  async sendVoiceMessage(
+    request: VoiceChatRequest
+  ): Promise<VoiceChatResponse> {
+    const formData = new FormData();
+    formData.append("audio", request.audioBlob, "voice-message.webm");
+
+    if (request.sessionId) {
+      formData.append("sessionId", request.sessionId);
+    }
+
+    if (request.language) {
+      formData.append("language", request.language);
+    }
+
+    const response = await apiClient.post("/chat", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      timeout: 60000, // Extended timeout for voice processing
+    });
+
+    return response.data;
+  },
+
+  // Send text message to /chat endpoint
+  async sendTextMessage(
+    message: string,
+    sessionId?: string
+  ): Promise<VoiceChatResponse> {
+    const response = await apiClient.post("/chat", {
+      message,
+      sessionId,
+    });
+
+    return response.data;
+  },
+};
 
 export default apiClient;
 export { BASE_URL };

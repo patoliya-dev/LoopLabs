@@ -130,6 +130,44 @@ class AudioService {
     });
   }
 
+  // Record voice and return audio blob for backend submission
+  async recordVoiceForChat(): Promise<{
+    audioBlob: Blob;
+    duration: number;
+  } | null> {
+    try {
+      // Start recording
+      await this.startRecording();
+
+      // Return a promise that resolves when recording is manually stopped
+      return new Promise((resolve) => {
+        const checkRecording = () => {
+          if (!this.recordingState.isRecording) {
+            // Recording was stopped, get the audio blob
+            if (this.audioChunks.length > 0) {
+              const audioBlob = new Blob(this.audioChunks, {
+                type: "audio/webm;codecs=opus",
+              });
+              const duration = this.recordingState.duration;
+              resolve({ audioBlob, duration });
+            } else {
+              resolve(null);
+            }
+          } else {
+            // Check again in 100ms
+            setTimeout(checkRecording, 100);
+          }
+        };
+
+        // Start checking
+        setTimeout(checkRecording, 100);
+      });
+    } catch (error) {
+      console.error("Error recording voice for chat:", error);
+      throw new Error("Failed to record voice");
+    }
+  }
+
   // Pause recording
   pauseRecording(): void {
     if (this.mediaRecorder && this.recordingState.isRecording) {
