@@ -16,11 +16,12 @@ def ask_model(prompt: str, model: str = "phi"):
             model=model,
             messages=[{"role": "user", "content": prompt}]
         )
+        # print(response)
         return response["message"]["content"]
     except Exception as e:
         return f"Error: {str(e)}"
 
 # Example usage:
 if __name__ == "__main__":
-    reply = ask_model("Write me a haiku about autumn.", model="phi")
+    reply = ask_model("Hello", model="phi")
     print("Model says:", reply)

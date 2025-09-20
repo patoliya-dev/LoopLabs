@@ -9,6 +9,17 @@ from pydantic import BaseModel
 import io
 from typing import Optional
 import datetime
+from src.llm import ask_model   # your helpers
+from stt import speech_to_text 
+from tts_service import tts_service
+import os
+import tempfile
+import logging
+from typing import Optional, Union
+import torch
+import numpy as np
+import shutil
+
 
 router = APIRouter()
 
@@ -150,3 +161,72 @@ async def text_to_speech(tts_request: TTSRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"TTS processing failed: {str(e)}")
+    
+@router.post("/chat")
+async def chat(
+    audio: UploadFile = File(...),
+    response_language: str = "en",    # language for TTS output
+    voice_speed: float = 1.0,
+    output_format: str = "mp3"
+):
+    """
+    Accepts an audio file, transcribes it with whisper.cpp,
+    sends the text to the LLM (ask_model), converts the reply to speech,
+    and streams audio back to the client.
+    """
+    # 1️⃣ Save the uploaded file to a temporary location
+    try:
+        suffix = Path(audio.filename).suffix or ".wav"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            temp_audio_path = Path(tmp.name)
+            shutil.copyfileobj(audio.file, tmp)
+    finally:
+        audio.file.close()
+
+    # 2️⃣ Speech-to-text
+    try:
+        user_text = speech_to_text(str(temp_audio_path))
+        print(user_text)
+    except Exception as e:
+        temp_audio_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"STT failed: {e}")
+
+    if not user_text.strip():
+        temp_audio_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail="No speech detected.")
+
+    # 3️⃣ Ask the LLM
+    print(user_text)
+    print(ask_model)
+    reply_text = ask_model(user_text)
+    print(reply_text)
+    if not reply_text:
+        temp_audio_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail="Model returned empty response.")
+
+    # 4️⃣ Text-to-speech
+    try:
+        audio_bytes = tts_service.text_to_audio_bytes(
+            text=reply_text,
+            language=response_language,
+            voice_speed=voice_speed,
+            format=output_format
+        )
+    except Exception as e:
+        temp_audio_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"TTS failed: {e}")
+
+    temp_audio_path.unlink(missing_ok=True)
+
+    # 5️⃣ Stream audio back
+    mime_map = {"mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg"}
+    content_type = mime_map.get(output_format.lower(), "audio/mpeg")
+
+    def audio_stream():
+        yield audio_bytes
+
+    return StreamingResponse(
+        audio_stream(),
+        media_type=content_type,
+        headers={"Content-Disposition": f"inline; filename=reply.{output_format}"}
+    )

@@ -6,7 +6,6 @@ from typing import Optional, Union
 from fastapi import HTTPException
 from TTS.api import TTS
 import torch
-import torchaudio
 from pydub import AudioSegment
 import numpy as np
 
