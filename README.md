@@ -10,3 +10,10 @@ pip freeze > requirements.txt
 ## Execute python
 uvicorn main:app --reload
 
+## Install whisper
+cd my_project
+git clone https://github.com/ggerganov/whisper.cpp whisper
+cd whisper
+make
+
+./models/download-ggml-model.sh small
