@@ -16,9 +16,11 @@ def speech_to_text(audio_file: str) -> str:
         raise FileNotFoundError(f"{audio_file} not found")
     
     cmd = [
-        str(WHISPER_BINARY),
-        "-m", str(MODEL_PATH),
-        "-f", str(audio_file_path)
+    str(WHISPER_BINARY),
+    "-m", str(MODEL_PATH),
+    "-f", str(audio_file_path),
+    "-otxt",           # write plain text file
+    "--no-timestamps"  # 🚨 add this line to suppress timestamps
     ]
 
     try:
