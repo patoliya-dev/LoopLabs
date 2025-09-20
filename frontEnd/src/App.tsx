@@ -1,4 +1,3 @@
-import React from "react";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import Chat from "./components/chats/chat";
@@ -13,7 +12,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/chat",
-    element: <div>Chat</div>,
+    element: <Chat />,
   },
   {
     path: "/features",

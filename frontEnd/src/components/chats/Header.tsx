@@ -1,6 +1,4 @@
-import React from 'react';
 import { Sun, Moon } from 'lucide-react';
-
 interface HeaderProps {
   isDarkMode: boolean;
   setIsDarkMode: (isDark: boolean) => void;
