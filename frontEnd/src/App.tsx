@@ -1,16 +1,28 @@
+import React from "react";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import Chat from "./components/chats/chat";
+import Home from "./components/home/Home";
+import { FeaturesSection } from "./components/home/FeatureSection";
+import { AboutSection } from "./components/home/AboutSection";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <div>Hello World</div>,
+    element: <Home />,
   },
   {
     path: "/chat",
-    element: <Chat />,
+    element: <div>Chat</div>,
   },
+  {
+    path: "/features",
+    element: <FeaturesSection />,
+  },
+  {
+    path: "/about",
+    element: <AboutSection />,
+  }
 ]);
 
 const App = () => {
