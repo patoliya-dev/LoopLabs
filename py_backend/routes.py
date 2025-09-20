@@ -46,11 +46,9 @@ async def add_conversation(request: Request):
     if not session_id or not prompt or not response or not language:
         raise HTTPException(status_code=400, detail="Missing required fields")
 
-    if not ObjectId.is_valid(session_id):
-        raise HTTPException(status_code=400, detail="Invalid session_id")
-
+    # No ObjectId conversion here if session_id is string
     conversation_doc = {
-        "session_id": ObjectId(session_id),
+        "session_id": session_id,
         "prompt": prompt,
         "response": response,
         "word": word,
