@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, UploadFile, File
 from database import sessions_collection, conversations_collection
 from bson.objectid import ObjectId
+from stt import speech_to_text
+from pathlib import Path      # <-- add this import
 import datetime
 
 router = APIRouter()
 
+# -----------------------------
+# Session Endpoints
+# -----------------------------
 @router.post("/api/session")
 async def create_or_store_session(request: Request):
     data = await request.json()
@@ -17,14 +22,14 @@ async def create_or_store_session(request: Request):
     existing_session = sessions_collection.find_one({"session_id": session_id})
 
     if existing_session:
-        # Optionally update last accessed time
+        # Update last accessed time
         sessions_collection.update_one(
             {"session_id": session_id},
             {"$set": {"last_accessed": datetime.datetime.utcnow()}}
         )
         return {"session_id": session_id, "message": "Session exists"}
 
-    # If session does not exist, create new
+    # Create new session
     session_doc = {
         "session_id": session_id,
         "created_at": datetime.datetime.utcnow(),
@@ -33,6 +38,9 @@ async def create_or_store_session(request: Request):
     sessions_collection.insert_one(session_doc)
     return {"session_id": session_id, "message": "New session created"}
 
+# -----------------------------
+# Conversation Endpoints
+# -----------------------------
 @router.post("/api/conversation")
 async def add_conversation(request: Request):
     data = await request.json()
@@ -46,7 +54,6 @@ async def add_conversation(request: Request):
     if not session_id or not prompt or not response or not language:
         raise HTTPException(status_code=400, detail="Missing required fields")
 
-    # No ObjectId conversion here if session_id is string
     conversation_doc = {
         "session_id": session_id,
         "prompt": prompt,
@@ -58,3 +65,19 @@ async def add_conversation(request: Request):
 
     conversations_collection.insert_one(conversation_doc)
     return {"message": "Conversation saved successfully"}
+
+# -----------------------------
+# Speech-to-Text Endpoint
+# -----------------------------
+@router.post("/api/stt")
+async def stt(file: UploadFile = File(...)):
+    # Save uploaded file
+    upload_dir = Path("uploads")
+    upload_dir.mkdir(exist_ok=True)
+    file_path = upload_dir / file.filename
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    # Convert speech to text
+    transcription = speech_to_text(str(file_path))
+    return {"text": transcription}
